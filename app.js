@@ -5,7 +5,17 @@ var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 
 var indexRouter = require('./routes/index');
-const loginRouter = require('./routes/login')
+const loginRouter = require('./routes/login');
+const deviceRouter = require('./routes/device');
+
+const mongoose = require('mongoose');
+const passport = require('passport');
+
+mongoose.connect('mongodb://127.0.0.1:27017/test');
+mongoose.connection.on('error', error => console.log(error) );
+mongoose.Promise = global.Promise;
+
+require('./adapter/auth');
 
 var app = express();
 
@@ -19,8 +29,10 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use('/', indexRouter);
+app.use('/',indexRouter);
+app.use('/api',passport.authenticate('jwt', { session: false }),deviceRouter);
 app.use('/',loginRouter);
+
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
