@@ -1,54 +1,74 @@
-var express = require('express');
-var router = express.Router();
+const express = require('express');
+const router = express.Router();
 const UserModel = require('./../adapter/user_model')
 
 
-const {getDevice,getDevices,saveDevice,updateDevice,deleteDevice} = require('../adapter/mongo_adapter');
+const { getDevices, saveDevice, updateDevice, deleteDevice, updateCurrentStatus } = require('../adapter/device_adapter');
 
 router.get('/device/read', async function (req, res, next) {
-    const user =  await UserModel.findOne({ 'email': req.user.email });
-    const devices = await getDevices(user.devices);
-    res.json( devices);
+  const response = { status: false, data: {} };
+  const user = await UserModel.findOne({ 'email': req.user.email });
+  const devices = await getDevices(user.devices);
+  if (devices) {
+    response.status = true;
+    response.data = devices;
+  }
+  res.send(response);
 });
 
 router.post('/device/create', async function (req, res, next) {
-const device = await saveDevice(req.body)
-console.log(device);
-await addDeviceToUser(req.user.email,device.data._id);
-res.send(device);
+  const device = await saveDevice(req.body)
+  await addDeviceToUser(req.user.email, device.data._id);
+  res.send(device);
 });
 
-addDeviceToUser = async (email,deviceId) => {
-    const user =  await UserModel.findOne({ 'email': email });
-    user.devices = user.devices ? user.devices : [];
-    user.devices.push(deviceId);
-    const savedDevice =await user.save();
+addDeviceToUser = async (email, deviceId) => {
+  const user = await UserModel.findOne({ 'email': email });
+  user.devices = user.devices ? user.devices : [];
+  user.devices.push(deviceId);
+  const savedDevice = await user.save();
 }
 
 
-router.get('/device/delete',async function (req, res, next) {
-// const user =  await UserModel.findOne({ 'email': req.user.email });
- const deletedDevice = await deleteDevice(req.params.id)
-    res.send(deletedDevice);
-    console.log(req.params);
+router.post('/device/delete', async function (req, res, next) {
+  const response = { status: false, data: {} };
+  const user = await UserModel.findOne({ 'email': req.user.email });
+  const index = user.devices.indexOf(req.body.id)
+  user.devices.splice(index, 1)
+  await user.save();
+  const deletedDevice = await deleteDevice(req.body.id)
+  if (deletedDevice == null) {
+    response.status = true;
+    response.message = "Device removed successfully"
+    res.send(response);
+  }
 });
 
-router.post('/device/edit', async function(req, res, next) {
-    const updatedDevice = await updateDevice(req.body)
-res.send(updatedDevice);
-    console.log(req.body);
-  });
+router.post('/device/edit', async function (req, res, next) {
+  const response = { status: false, message: "Not updated" };
+  const updatedDevice = await updateDevice(req.body)
+  if (updatedDevice.modifiedCount != 0) {
+    response.status = true;
+    response.message = "updated successfully"
+  }
+  res.send(response);
+});
 
-  router.post('/device/currentStatus', async function(req, res, next) {
-    const updatedDevice = await updateCurrentStatus(req.body)
-res.send(updatedDevice);
-    console.log(req.body);
-  });
+router.post('/device/currentState', async function (req, res, next) {
+  const response = { status: false, message: "currentState Not updated" };
+  const updatedDevice = await updateCurrentStatus(req.body)
+  if (updatedDevice.modifiedCount != 0) {
+    response.status = true;
+    response.message = " currentState updated successfully"
+  }
+  res.send(response);
 
-  router.post('/device/share',async function(req,res,next){
-    await addDeviceToUser(req.params.email,req.params.id);
-    res.send('Device shared successfully')
-  });
+});
+
+router.post('/device/share', async function (req, res, next) {
+  await addDeviceToUser(req.params.email, req.params.id);
+  res.send('Device shared successfully')
+});
 
 
 
