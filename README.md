@@ -20,12 +20,12 @@ Developed api's focrud operation of devices by the user logged in.
 
 # api
 
-/device/create
-/device/read
-/device/edit
-/device/delete
-/device/currentState
-/device/share
+/api/device/create
+/api/device/read
+/api/device/edit
+/api/device/delete
+/api/device/currentState
+/api/device/share
 
 
 
